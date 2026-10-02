@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcards Ôn Tập Từ Vựng - SubDict</title>
+  <link rel="stylesheet" href="flashcards.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <span class="brand-icon">🗂️</span>
+        <div>
+          <h1 class="brand-title">SubDict Flashcards</h1>
+          <p class="brand-subtitle">Ôn tập từ vựng tiếng Anh offline</p>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stats-group">
+        <div class="stat-pill" title="Tổng số từ trong bộ sưu tập">
+          <span class="stat-num" id="totalCount">0</span>
+          <span class="stat-text">Tổng từ</span>
+        </div>
+        <div class="stat-pill stat-learning" title="Từ đang trong quá trình ghi nhớ">
+          <span class="stat-num" id="learningCount">0</span>
+          <span class="stat-text">Đang học</span>
+        </div>
+        <div class="stat-pill stat-mastered" title="Từ đã ghi nhớ thành thạo">
+          <span class="stat-num" id="masteredCount">0</span>
+          <span class="stat-text">Đã thuộc</span>
+        </div>
+      </div>
+
+      <!-- Nav Actions -->
+      <div class="nav-actions">
+        <button id="addManualBtn" class="btn btn-secondary">➕ Thêm từ mới</button>
+        <button id="exportBtn" class="btn btn-secondary" title="Xuất danh sách từ vựng ra file JSON">📥 Xuất file</button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="studyTab">
+        🎴 Chế độ Lật Thẻ (Ôn tập)
+      </button>
+      <button class="tab-btn" data-tab="listTab">
+        📋 Danh sách Từ vựng
+      </button>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="main-content">
+      
+      <!-- ================= TAB 1: STUDY MODE ================= -->
+      <section id="studyTab" class="tab-pane active">
+        <!-- Study Control Bar -->
+        <div class="study-controls">
+          <div class="filter-controls">
+            <span class="control-label">Ôn tập theo:</span>
+            <select id="studyFilter" class="select-input">
+              <option value="all">Tất cả từ vựng</option>
+              <option value="learning" selected>Chỉ từ đang học (Cần ôn)</option>
+              <option value="mastered">Từ đã thuộc</option>
+            </select>
+            <button id="shuffleBtn" class="btn btn-icon" title="Trộn ngẫu nhiên thứ tự thẻ">🔀 Trộn thẻ</button>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-label">
+              <span>Tiến độ:</span>
+              <strong id="studyProgressText">0 / 0</strong>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="studyProgressBar" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State in Study Mode -->
+        <div id="studyEmptyState" class="empty-state hidden">
+          <div class="empty-icon">📖</div>
+          <h2>Chưa có thẻ nào để ôn tập!</h2>
+          <p id="studyEmptyDesc">Hãy thêm từ khi xem video YouTube hoặc bôi đen văn bản bằng phím tắt <strong>Alt + S</strong> hoặc bấm <strong>⭐ Lưu từ</strong> trên popup.</p>
+          <button id="emptyAddBtn" class="btn btn-primary">➕ Thêm từ đầu tiên</button>
+        </div>
+
+        <!-- 3D Flip Card Container -->
+        <div id="studyCardContainer" class="card-stage">
+          <div id="flashcard" class="flashcard">
+            <!-- Front Face -->
+            <div class="card-face card-front">
+              <div class="card-face-header">
+                <span id="frontStatusBadge" class="status-badge status-learning">Đang học</span>
+                <span id="frontPosBadge" class="pos-badge">Word</span>
+              </div>
+
+              <div class="card-front-center">
+                <h2 id="frontWord" class="card-word">word</h2>
+                <div class="card-ipa-group">
+                  <span id="frontIpa" class="card-ipa">/wɜːd/</span>
+                  <button id="frontAudioBtn" class="btn-audio" title="Nghe phát âm tiếng Anh (Phím R)">🔊</button>
+                </div>
+                <span id="frontLemma" class="card-lemma-hint hidden"></span>
+              </div>
+
+              <div class="card-face-footer">
+                <span class="hint-text">💡 Bấm vào thẻ hoặc phím <strong>[Space]</strong> để lật mặt sau</span>
+              </div>
+            </div>
+
+            <!-- Back Face -->
+            <div class="card-face card-back">
+              <div class="card-face-header">
+                <div class="back-title-group">
+                  <h3 id="backWord" class="back-word">word</h3>
+                  <span id="backIpa" class="back-ipa">/wɜːd/</span>
+                  <button id="backAudioBtn" class="btn-audio" title="Nghe phát âm (Phím R)">🔊</button>
+                </div>
+                <span id="backStatusBadge" class="status-badge status-learning">Đang học</span>
+              </div>
+
+              <div id="backDefsList" class="card-defs-scroll">
+                <!-- Grouped Vietnamese definitions and examples inserted here -->
+              </div>
+
+              <div class="card-face-footer">
+                <span class="hint-text">💡 Chọn kết quả ôn tập bên dưới:</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Study Action Feedback Buttons -->
+        <div id="studyActionButtons" class="study-actions">
+          <button id="btnNotRemembered" class="btn btn-danger btn-action" title="Phím tắt: Phím 1 hoặc Mũi tên trái (←)">
+            <span class="action-icon">❌</span>
+            <div class="action-text-group">
+              <span class="action-title">Chưa nhớ</span>
+              <span class="action-shortcut">Phím 1 hoặc ←</span>
+            </div>
+          </button>
+
+          <button id="btnFlipCard" class="btn btn-secondary btn-action btn-flip" title="Phím tắt: Space hoặc Enter">
+            <span class="action-icon">🔄</span>
+            <div class="action-text-group">
+              <span class="action-title">Lật thẻ</span>
+              <span class="action-shortcut">Space</span>
+            </div>
+          </button>
+
+          <button id="btnRemembered" class="btn btn-success btn-action" title="Phím tắt: Phím 2 hoặc Mũi tên phải (→)">
+            <span class="action-icon">✅</span>
+            <div class="action-text-group">
+              <span class="action-title">Đã nhớ</span>
+              <span class="action-shortcut">Phím 2 hoặc →</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Completion Modal / View -->
+        <div id="studyCompleteState" class="complete-state hidden">
+          <div class="complete-box">
+            <div class="celebrate-icon">🎉</div>
+            <h2>Hoàn thành lượt ôn tập!</h2>
+            <p>Bạn đã hoàn thành toàn bộ các thẻ trong phiên này.</p>
+            <div class="complete-summary">
+              <div class="summary-item">
+                <span class="summary-num green" id="sumRemembered">0</span>
+                <span class="summary-label">Đã nhớ (Thuộc)</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-num red" id="sumNotRemembered">0</span>
+                <span class="summary-label">Cần ôn lại</span>
+              </div>
+            </div>
+            <div class="complete-actions">
+              <button id="restartReviewBtn" class="btn btn-primary">🔄 Ôn tập lại từ chưa nhớ</button>
+              <button id="restartAllBtn" class="btn btn-secondary">🔀 Ôn tập lại tất cả</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: VOCABULARY LIST ================= -->
+      <section id="listTab" class="tab-pane">
+        <!-- List Toolbar -->
+        <div class="list-toolbar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="listSearchInput" placeholder="Tìm kiếm từ tiếng Anh hoặc nghĩa tiếng Việt...">
+          </div>
+
+          <div class="list-filters">
+            <select id="listStatusFilter" class="select-input">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="learning">Chỉ từ đang học</option>
+              <option value="mastered">Chỉ từ đã thuộc</option>
+            </select>
+
+            <select id="listSortBy" class="select-input">
+              <option value="newest">Mới thêm gần nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="alpha">A → Z</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Vocabulary Cards Grid / Table -->
+        <div id="vocabListContainer" class="vocab-grid">
+          <!-- Dynamically populated card rows -->
+        </div>
+
+        <!-- List Empty State -->
+        <div id="listEmptyState" class="empty-state hidden">
+          <div class="empty-icon">🔍</div>
+          <h3>Không tìm thấy từ nào phù hợp</h3>
+          <p>Thử tìm từ khóa khác hoặc chuyển bộ lọc trạng thái.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Manual Add / Edit Word Modal -->
+  <div id="manualModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">➕ Thêm từ vào Flashcard</h3>
+        <button id="closeModalBtn" class="btn-close">✕</button>
+      </div>
+      <form id="manualForm" class="modal-body">
+        <div class="form-group">
+          <label for="formWord">Từ hoặc Cụm từ tiếng Anh (*):</label>
+          <input type="text" id="formWord" required placeholder="Ví dụ: look forward to, apple..." autocomplete="off">
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="formIpa">Phiên âm IPA:</label>
+            <input type="text" id="formIpa" placeholder="Ví dụ: /lˈʊk fˈɔːwəd tuː/">
+          </div>
+          <div class="form-group flex-1">
+            <label for="formPos">Loại từ (POS):</label>
+            <input type="text" id="formPos" placeholder="Ví dụ: Verb, Noun, Phrasal verb">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="formDef">Nghĩa tiếng Việt (*):</label>
+          <textarea id="formDef" rows="3" required placeholder="Nhập nghĩa tiếng Việt của từ..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="formExample">Câu ví dụ (Tùy chọn):</label>
+          <input type="text" id="formExample" placeholder="Ví dụ: I look forward to seeing you.">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="cancelModalBtn" class="btn btn-secondary">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu thẻ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="flashcards.js"></script>
+</body>
+</html>

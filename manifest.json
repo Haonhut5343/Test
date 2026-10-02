@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "SubDict - YouTube Subtitle & Web Offline Dictionary",
+  "version": "1.2.0",
+  "description": "Học tiếng Anh qua phụ đề YouTube, tra từ bôi đen trên web và ôn tập từ vựng Flashcard với từ điển Anh-Việt offline SQLite (sql.js WebAssembly)",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "Background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["Content/content.js"],
+      "css": ["Content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "Popup/popup.html",
+    "default_title": "SubDict Offline"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "Database/dictionary_en_vi.db",
+        "Lib/sql-wasm.wasm",
+        "Lib/sql-wasm.js",
+        "Lib/dictionary.js",
+        "Content/content.css",
+        "Flashcards/flashcards.html",
+        "Flashcards/flashcards.css",
+        "Flashcards/flashcards.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

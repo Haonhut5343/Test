@@ -1,0 +1,332 @@
+/* Subtitle & Web Selection Dictionary Overlay & Tooltip Styles */
+
+/* Highlighted words and phrases in subtitles */
+.subdict-interactive-segment {
+  display: inline !important;
+}
+
+.subdict-word,
+.subdict-phrase {
+  cursor: pointer;
+  border-radius: 2px;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  display: inline !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transition: background-color 0.12s ease;
+}
+
+/* Bold / highlight recognized words */
+.subdict-word.subdict-recognized {
+  font-weight: 600;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.6);
+  text-underline-offset: 3px;
+}
+
+/* Distinct highlight for multi-word phrases (Phrasal verbs, idioms) */
+.subdict-phrase {
+  font-weight: 700;
+  color: #38bdf8 !important;
+  background-color: rgba(2, 132, 199, 0.3);
+  border-bottom: 2px solid #38bdf8;
+  padding: 0 1px !important;
+  margin: 0 !important;
+}
+
+.subdict-word:hover,
+.subdict-phrase:hover {
+  background-color: rgba(56, 189, 248, 0.4) !important;
+  color: #ffffff !important;
+}
+
+/* Expand caption window across video frame so text runs until the end of the frame before wrapping */
+.caption-window,
+.caption-window.ytp-caption-window-bottom,
+.caption-window.ytp-caption-window-rollup {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  text-align: center !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+}
+
+.caption-visual-line {
+  display: block !important;
+  text-align: center !important;
+  pointer-events: none !important;
+  margin: 2px 0 !important;
+}
+
+.ytp-caption-segment {
+  display: inline-block !important;
+  text-align: center !important;
+  max-width: 92% !important;
+  white-space: pre-wrap !important;
+  word-break: normal !important;
+  pointer-events: auto !important;
+}
+
+/* Floating Dictionary Tooltip (Wider horizontal frame, compact height with scroll) */
+#subdict-tooltip {
+  position: absolute;
+  z-index: 2147483647; /* Top-most layer above web pages & YouTube player */
+  width: 460px;
+  max-width: 92vw;
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.75), 0 8px 10px -6px rgba(0, 0, 0, 0.75);
+  color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  padding: 10px 14px;
+  pointer-events: auto;
+  user-select: text;
+  opacity: 0;
+  visibility: hidden;
+  box-sizing: border-box;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+#subdict-tooltip * {
+  box-sizing: border-box;
+}
+
+#subdict-tooltip.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* YouTube subtitle tooltip position: positioned directly above the hovered word (purely symbolic / HUD overlay) */
+#subdict-tooltip.subdict-youtube-positioned,
+#subdict-tooltip.subdict-youtube-positioned * {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+#subdict-tooltip.subdict-youtube-positioned {
+  top: auto !important;
+  transform: none !important;
+}
+
+/* Header: Word, IPA, Region, and Lemma ALL ON THE SAME LINE */
+.subdict-tt-header {
+  border-bottom: 1px solid #334155;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.subdict-tt-top-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.subdict-tt-word {
+  font-size: 17px;
+  font-weight: 700;
+  color: #38bdf8;
+  line-height: 1.2;
+}
+
+.subdict-tt-ipa-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.subdict-tt-ipa {
+  font-family: monospace;
+  font-size: 11px;
+  color: #a5f3fc;
+  background: #0f172a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  line-height: 1.3;
+}
+
+.subdict-tt-region {
+  color: #f59e0b;
+  font-weight: bold;
+  margin-right: 3px;
+}
+
+.subdict-tt-lemma {
+  font-size: 10px;
+  background: #431407;
+  color: #fdba74;
+  border: 1px solid #9a3412;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Compact body height with smooth mouse wheel roll/scroll */
+.subdict-tt-body {
+  max-height: 150px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 6px;
+}
+
+/* Sleek custom scrollbar */
+.subdict-tt-body::-webkit-scrollbar {
+  width: 5px;
+}
+.subdict-tt-body::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 4px;
+}
+.subdict-tt-body::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.subdict-tt-body::-webkit-scrollbar-thumb:hover {
+  background: #0284c7;
+}
+
+.subdict-tt-pos-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.subdict-tt-pos {
+  font-size: 10px;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: #1e293b;
+  padding: 1px 6px;
+  border-radius: 3px;
+  align-self: flex-start;
+  border-left: 3px solid #0284c7;
+}
+
+.subdict-tt-def-item {
+  padding-left: 8px;
+  border-left: 1px dashed #475569;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.subdict-tt-meaning {
+  font-size: 12px;
+  color: #f8fafc;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.subdict-tt-example {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+/* Root Word Section inside Tooltip */
+.subdict-tt-root-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subdict-tt-root-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.subdict-tt-root-badge {
+  background: #431407;
+  color: #fdba74;
+  border: 1px solid #9a3412;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.subdict-tt-root-name {
+  color: #38bdf8;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Flashcard Star Button inside Tooltip */
+.subdict-tt-star-btn {
+  margin-left: auto;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.subdict-tt-star-btn:hover {
+  background: #334155;
+  color: #f8fafc;
+  border-color: #64748b;
+}
+
+.subdict-tt-star-btn.saved {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.7);
+  color: #f59e0b;
+}
+
+.subdict-tt-star-btn.saved:hover {
+  background: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+/* Tooltip Flashcard Toast Badge */
+.subdict-tt-toast {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #38bdf8;
+  color: #f0f9ff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+  z-index: 2147483647;
+}
+
+.subdict-tt-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}

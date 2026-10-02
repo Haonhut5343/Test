@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubDict Test Lab (Browser Verification)</title>
+  <link rel="stylesheet" href="Popup/popup.css">
+  <link rel="stylesheet" href="Content/content.css">
+  <style>
+    body {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      background: #090d16;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .lab-header {
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+    .lab-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .lab-desc {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-top: 6px;
+    }
+    .status-panel {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .status-label {
+      font-size: 11px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .status-val {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e5e7eb;
+    }
+    .status-val.green {
+      color: #10b981;
+    }
+    .test-box {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .simulated-player {
+      background: #000;
+      border-radius: 8px;
+      height: 240px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 24px;
+      overflow: hidden;
+      border: 1px solid #374151;
+      margin-top: 12px;
+    }
+    .player-overlay {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      font-size: 12px;
+      color: #ef4444;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .player-state {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 12px;
+      color: #9ca3af;
+      background: #1f2937;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .caption-box {
+      background: rgba(0, 0, 0, 0.82);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 18px;
+      line-height: 1.5;
+      text-align: center;
+      max-width: 80%;
+      user-select: none;
+    }
+    .demo-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .demo-btn {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: #e5e7eb;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .demo-btn:hover {
+      background: #0284c7;
+      color: #fff;
+    }
+    .log-box {
+      background: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      color: #10b981;
+      max-height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="lab-header">
+    <div class="lab-title">
+      <span>🔬 SubDict Offline Test Lab</span>
+    </div>
+    <p class="lab-desc">
+      Kiểm tra trực tiếp WebAssembly SQLite, nạp dictionary_en_vi.db (42MB) trong trình duyệt,
+      phát hiện cụm từ (greedy phrase detection) và tương tác hover phụ đề tự dừng video.
+    </p>
+  </header>
+
+  <!-- Status Bar -->
+  <div class="status-panel">
+    <div class="status-item">
+      <span class="status-label">SQLite Engine</span>
+      <span id="labEngineStatus" class="status-val">Đang khởi tạo...</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Database File</span>
+      <span id="labDbStatus" class="status-val">dictionary_en_vi.db</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Thời gian nạp</span>
+      <span id="labLoadTime" class="status-val">-</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Từ khóa test</span>
+      <span class="status-val green" id="labTestHello">Đang chờ...</span>
+    </div>
+  </div>
+
+  <!-- Simulated YouTube Video Player with Captions -->
+  <div class="test-box">
+    <h3 style="font-size: 16px; color: #f8fafc; margin-bottom: 6px;">
+      ▶ Mô phỏng phụ đề YouTube (Interactive Subtitle Layer):
+    </h3>
+    <p style="font-size: 13px; color: #94a3b8;">
+      Rê chuột vào bất kỳ từ nào hoặc cụm từ được bôi đậm/gạch chân để xem popup từ điển offline và tự động tạm dừng mô phỏng.
+    </p>
+
+    <div class="simulated-player" id="player">
+      <div class="player-overlay">● REC (Simulated Video)</div>
+      <div class="player-state" id="playerStateBadge">Trạng thái: Đang phát (Playing)</div>
+      
+      <div class="caption-box" id="captionContainer">
+        <!-- Processed subtitle segments with interactive spans will appear here -->
+        <span>Đang nạp dữ liệu từ điển...</span>
+      </div>
+    </div>
+
+    <div class="demo-controls">
+      <span style="font-size: 13px; color: #94a3b8; align-self: center;">Đổi câu mẫu:</span>
+      <button class="demo-btn" data-text="I was looking forward to seeing you again.">Mẫu 1: look forward to</button>
+      <button class="demo-btn" data-text="Please don't give up when machines break down.">Mẫu 2: give up & break down</button>
+      <button class="demo-btn" data-text="I feel a bit under the weather today, but I will run.">Mẫu 3: under the weather & run</button>
+      <button class="demo-btn" data-text="Hello! Nice to meet you and welcome to the team.">Mẫu 4: hello & welcome</button>
+    </div>
+  </div>
+
+  <!-- Simulated Web Text Selection (Tô đen từ trên trang web) -->
+  <div class="test-box">
+    <h3 style="font-size: 16px; color: #f8fafc; margin-bottom: 6px;">
+      📄 Thử nghiệm tính năng Tô đen từ (Web Selection Lookup):
+    </h3>
+    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;">
+      Hãy dùng chuột <strong>bôi đen (tô đen)</strong> bất kỳ từ hoặc cụm từ nào trong đoạn văn dưới đây. Một nút bấm 📖 sẽ xuất hiện ngay cạnh phần tô đen để bạn bấm tra nghĩa từ điển offline tức thì:
+    </p>
+
+    <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; font-size: 15px; line-height: 1.7; color: #e2e8f0;" id="selectableArticle">
+      Learning English through video subtitles is one of the most effective habits. When you <strong>look forward to</strong> mastering new vocabulary, you should never <strong>give up</strong> even when complex sentences <strong>break down</strong> your confidence. Sometimes if you feel <strong>under the weather</strong>, take a deep breath, review your notes, and say <strong>hello</strong> to tomorrow with full determination!
+    </div>
+  </div>
+
+  <!-- Interactive Lookup Tool -->
+  <div class="test-box">
+    <h3 style="font-size: 16px; color: #f8fafc; margin-bottom: 10px;">
+      🔍 Tra cứu trực tiếp từ SQLite Database:
+    </h3>
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <input 
+        type="text" 
+        id="labWordInput" 
+        value="hello" 
+        style="flex: 1; background: #1e293b; border: 1px solid #334155; color: #fff; padding: 10px 14px; border-radius: 6px; font-size: 14px; outline: none;"
+      >
+      <button id="labLookupBtn" class="btn primary-btn" style="padding: 10px 20px;">Tra từ</button>
+    </div>
+
+    <!-- Result container -->
+    <div id="labResultCard" style="background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 14px; min-height: 120px;">
+      <div id="labResultContent"></div>
+    </div>
+  </div>
+
+  <!-- Live Diagnostic Logs -->
+  <div class="test-box">
+    <h3 style="font-size: 14px; color: #94a3b8; margin-bottom: 8px;">📋 Nhật ký chẩn đoán (Diagnostic Logs):</h3>
+    <div id="logOutput" class="log-box">Khởi động test lab...</div>
+  </div>
+
+  <!-- Load sql-wasm.js and dictionary.js -->
+  <script src="Lib/sql-wasm.js"></script>
+  <script src="Lib/dictionary.js"></script>
+
+  <script>
+    const logBox = document.getElementById('logOutput');
+    function log(msg) {
+      console.log(msg);
+      logBox.textContent += '\n' + msg;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    let engine = null;
+    let isPlaying = true;
+    let tooltip = null;
+    let activeLabElem = null;
+
+    function setPlayerState(playing) {
+      isPlaying = playing;
+      const badge = document.getElementById('playerStateBadge');
+      if (playing) {
+        badge.textContent = 'Trạng thái: Đang phát (Playing)';
+        badge.style.color = '#10b981';
+      } else {
+        badge.textContent = 'Trạng thái: Tạm dừng (PAUSED)';
+        badge.style.color = '#f59e0b';
+      }
+    }
+
+    function createTooltip() {
+      if (tooltip) return tooltip;
+      tooltip = document.createElement('div');
+      tooltip.id = 'subdict-tooltip';
+      document.body.appendChild(tooltip);
+      return tooltip;
+    }
+
+    function showTooltip(elem, text) {
+      setPlayerState(false); // Pause on hover
+      const tt = createTooltip();
+      activeLabElem = elem;
+      tt.innerHTML = '<div style="padding: 6px;">Đang tra cứu: <strong>' + text + '</strong>...</div>';
+      
+      // Position above the specific word, centered on word, clamped inside player
+      const player = document.getElementById('player');
+      const elemRect = elem.getBoundingClientRect();
+      const tooltipWidth = 460;
+      if (player && player.contains(elem)) {
+        const pRect = player.getBoundingClientRect();
+        let left = (elemRect.left - pRect.left + (elemRect.width / 2)) - (tooltipWidth / 2);
+        left = Math.max(12, Math.min(pRect.width - tooltipWidth - 12, left));
+        tt.style.left = (pRect.left + left) + 'px';
+        tt.style.top = (elemRect.top - 180) + 'px';
+        tt.style.width = tooltipWidth + 'px';
+      } else {
+        // Web selection: above or below with boundary clamping
+        const spaceAbove = elemRect.top;
+        const spaceBelow = window.innerHeight - elemRect.bottom;
+        let top = (spaceAbove >= 200) ? (elemRect.top + window.scrollY - 190) : (elemRect.bottom + window.scrollY + 10);
+        let left = elemRect.left + window.scrollX + (elemRect.width / 2) - (tooltipWidth / 2);
+        left = Math.max(12, Math.min(window.innerWidth - tooltipWidth - 12, left));
+        tt.style.left = left + 'px';
+        tt.style.top = top + 'px';
+        tt.style.width = tooltipWidth + 'px';
+      }
+      tt.classList.add('visible');
+
+      const res = engine.lookup(text);
+      if (res && res.found) {
+        let ipas = (res.pronunciations || []).map(p => 
+          '<span class="subdict-tt-ipa">' + (p.region ? '<span class="subdict-tt-region">' + p.region + '</span>' : '') + p.ipa + '</span>'
+        ).join(' ');
+
+        let defs = (res.definitions || []).map(d => 
+          '<div class="subdict-tt-def-item">' +
+            '<span class="subdict-tt-meaning">' + d.definition + '</span>' +
+            (d.example ? '<span class="subdict-tt-example">"' + d.example + '"</span>' : '') +
+          '</div>'
+        ).join('');
+
+        tt.innerHTML = 
+          '<div class="subdict-tt-header">' +
+            '<div class="subdict-tt-top-line">' +
+              '<span class="subdict-tt-word">' + res.word + '</span>' +
+              (ipas ? '<div class="subdict-tt-ipa-group">' + ipas + '</div>' : '') +
+              (res.isLemmaFallback ? '<span class="subdict-tt-lemma">Gốc: ' + res.lemma + '</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="subdict-tt-body">' +
+            '<div class="subdict-tt-pos-group">' +
+              '<span class="subdict-tt-pos">' + (res.definitions[0]?.posLabel || 'Nghĩa') + ' (' + res.definitions.length + ')</span>' +
+              defs +
+            '</div>' +
+          '</div>';
+      } else {
+        tt.innerHTML = '<div style="padding: 8px;">Không tìm thấy trong từ điển offline.</div>';
+      }
+    }
+
+    function hideTooltip() {
+      if (tooltip) tooltip.classList.remove('visible');
+      setPlayerState(true); // Resume video
+    }
+
+    function renderCaption(sentence) {
+      if (!engine || !engine.isReady) return;
+      const container = document.getElementById('captionContainer');
+      container.innerHTML = '';
+
+      // Tokenize
+      const tokens = [];
+      const regex = /([a-zA-Z0-9'’-]+)|([^a-zA-Z0-9'’-]+)/g;
+      let match;
+      while ((match = regex.exec(sentence)) !== null) {
+        if (match[1]) tokens.push({ type: 'word', text: match[1] });
+        else if (match[2]) tokens.push({ type: 'punct', text: match[2] });
+      }
+
+      const wordTokens = tokens.filter(t => t.type === 'word');
+      const segments = engine.matchPhrasesInTokens(wordTokens);
+
+      let wordIdx = 0;
+      let segIdx = 0;
+
+      for (const tok of tokens) {
+        if (tok.type === 'punct') {
+          container.appendChild(document.createTextNode(tok.text));
+          continue;
+        }
+
+        const curSeg = segments[segIdx];
+        if (curSeg && curSeg.type === 'phrase') {
+          if (wordIdx === curSeg.startIndex) {
+            const span = document.createElement('span');
+            span.className = 'subdict-phrase';
+            span.textContent = curSeg.text;
+            span.addEventListener('mouseenter', () => showTooltip(span, curSeg.lookupKey));
+            span.addEventListener('mouseleave', hideTooltip);
+            container.appendChild(span);
+          }
+          if (wordIdx === curSeg.endIndex) segIdx++;
+          wordIdx++;
+        } else {
+          const span = document.createElement('span');
+          const isRec = curSeg?.isRecognized;
+          span.className = 'subdict-word ' + (isRec ? 'subdict-recognized' : '');
+          span.textContent = tok.text;
+          if (isRec) {
+            span.addEventListener('mouseenter', () => showTooltip(span, curSeg?.lookupKey || tok.text.toLowerCase()));
+            span.addEventListener('mouseleave', hideTooltip);
+          }
+          container.appendChild(span);
+          wordIdx++;
+          segIdx++;
+        }
+      }
+    }
+
+    function renderLabResult(res, elapsedMs) {
+      const container = document.getElementById('labResultContent');
+      if (!res || !res.found) {
+        container.innerHTML = '<p style="color: #94a3b8;">Không tìm thấy trong từ điển offline.</p>';
+        return;
+      }
+
+      let ipaHtml = (res.pronunciations || []).map(p => 
+        '<span class="ipa-pill">' + (p.region ? '<span class="region-tag">' + p.region + '</span>' : '') + p.ipa + '</span>'
+      ).join(' ');
+
+      let defsHtml = (res.definitions || []).map(d => 
+        '<div class="def-item" style="margin-bottom: 8px;">' +
+          '<div style="font-size: 11px; font-weight: bold; color: #38bdf8;">' + (d.posLabel || d.pos) + '</div>' +
+          '<div class="def-text">' + d.definition + '</div>' +
+          (d.example ? '<div class="def-example">"' + d.example + '"</div>' : '') +
+        '</div>'
+      ).join('');
+
+      container.innerHTML = 
+        '<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">' +
+          '<div style="display: flex; gap: 10px; align-items: baseline;">' +
+            '<span style="font-size: 20px; font-weight: bold; color: #38bdf8;">' + res.word + '</span>' +
+            (res.isLemmaFallback ? '<span class="badge lemma-badge">Gốc: ' + res.lemma + '</span>' : '') +
+          '</div>' +
+          '<span style="font-size: 11px; color: #94a3b8;">Tra cứu: ' + elapsedMs + 'ms</span>' +
+        '</div>' +
+        (ipaHtml ? '<div style="margin-bottom: 10px;">' + ipaHtml + '</div>' : '') +
+        '<div style="max-height: 220px; overflow-y: auto;">' + defsHtml + '</div>';
+    }
+
+    // Initialize Database
+    async function initLab() {
+      try {
+        log('[1/3] Đang tải sql-wasm.wasm và cấu hình engine...');
+        engine = new DictionaryEngine();
+
+        log('[2/3] Đang fetch Database/dictionary_en_vi.db (42MB)...');
+        const res = await engine.init({
+          wasmUrl: 'Lib/sql-wasm.wasm',
+          dbUrl: 'Database/dictionary_en_vi.db'
+        });
+
+        log(`[3/3] SQLite Database mở thành công trong ${res.loadTimeMs}ms! Dung lượng: ${(res.dbSizeBytes / (1024*1024)).toFixed(2)} MB`);
+        
+        document.getElementById('labEngineStatus').textContent = 'Sẵn sàng (Online WASM)';
+        document.getElementById('labEngineStatus').className = 'status-val green';
+        document.getElementById('labLoadTime').textContent = res.loadTimeMs + 'ms';
+
+        // Phase 3 Checkpoint: Query 'hello'
+        const t0 = performance.now();
+        const helloRes = engine.lookup('hello');
+        const helloTime = Math.round(performance.now() - t0);
+
+        log(`Phase 3 Check: Query "hello" thành công trong ${helloTime}ms! Tìm thấy ${helloRes.definitions.length} nghĩa.`);
+        document.getElementById('labTestHello').textContent = `Thành công (${helloRes.pronunciations[0]?.ipa || ''} - ${helloRes.definitions.length} nghĩa)`;
+
+        renderLabResult(helloRes, helloTime);
+        renderCaption('I was looking forward to seeing you again.');
+        setPlayerState(true);
+
+      } catch (err) {
+        log('LỖI: ' + err.message);
+        document.getElementById('labEngineStatus').textContent = 'LỖI KHỞI ĐỘNG';
+        document.getElementById('labEngineStatus').style.color = '#ef4444';
+      }
+    }
+
+    // Event listeners
+    document.getElementById('labLookupBtn').addEventListener('click', () => {
+      const w = document.getElementById('labWordInput').value.trim();
+      if (!w || !engine) return;
+      const t0 = performance.now();
+      const r = engine.lookup(w);
+      renderLabResult(r, Math.round(performance.now() - t0));
+    });
+
+    document.getElementById('labWordInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('labLookupBtn').click();
+    });
+
+    // Web Selection demo
+    // Web Selection demo: directly show popup when selecting text
+    document.addEventListener('mouseup', (e) => {
+      if (tooltip?.contains(e.target)) return;
+      setTimeout(() => {
+        const selection = window.getSelection();
+        const text = selection ? selection.toString().trim() : '';
+        const wordCount = text.split(/\s+/).filter(Boolean).length;
+        if (text && wordCount >= 1 && wordCount <= 6) {
+          try {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              const fakeElem = { getBoundingClientRect: () => rect };
+              showTooltip(fakeElem, text);
+              return;
+            }
+          } catch (err) {}
+        }
+      }, 50);
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (tooltip && !tooltip.contains(e.target)) {
+        const sel = window.getSelection();
+        if (!sel || !sel.toString().trim()) {
+          tooltip.classList.remove('visible');
+        }
+      }
+    });
+
+    // Wheel scroll forwarding: roll mouse wheel directly on the word to scroll popup definitions
+    window.addEventListener('wheel', (e) => {
+      if (!tooltip || !tooltip.classList.contains('visible')) return;
+      const body = tooltip.querySelector('.subdict-tt-body');
+      if (!body) return;
+
+      const isOverWord = activeLabElem && (activeLabElem === e.target || (activeLabElem.contains && activeLabElem.contains(e.target)));
+      const isOverTooltip = tooltip.contains(e.target);
+
+      if (isOverWord || isOverTooltip) {
+        if (body.scrollHeight > body.clientHeight) {
+          e.preventDefault();
+          e.stopPropagation();
+          body.scrollTop += e.deltaY;
+        }
+      }
+    }, { passive: false, capture: true });
+
+    // Start
+    initLab();
+  </script>
+</body>
+</html>

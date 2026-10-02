@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & temp files
+*.log
+*.tmp
+*.bak
+*.backup
+
+# IDE
+.vscode/
+.idea/

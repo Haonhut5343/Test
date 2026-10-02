@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Subtitle & Web Dictionary</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-group">
+        <div class="logo-icon">📖</div>
+        <div>
+          <h1 class="title">SubDict Offline</h1>
+          <p class="subtitle">YouTube Subtitle & Web Offline Dictionary</p>
+        </div>
+      </div>
+      <div id="statusBadge" class="status-badge status-loading">Đang tải DB...</div>
+    </header>
+
+    <!-- DB Info Bar -->
+    <div class="db-info" id="dbInfoBar">
+      <span>Database: <strong>SQLite (Offline)</strong></span>
+      <span id="dbTiming">Đang kiểm tra...</span>
+    </div>
+
+    <!-- Quick Search / Test Query (Phase 3 Checkpoint) -->
+    <section class="search-section">
+      <label class="section-label" for="wordInput">Thử nghiệm tra từ (Phase 3 Checkpoint):</label>
+      <div class="search-box">
+        <input 
+          type="text" 
+          id="wordInput" 
+          placeholder="Nhập từ hoặc cụm từ (vd: hello, look forward to)..." 
+          value="hello"
+          autocomplete="off"
+        >
+        <button id="lookupBtn" class="btn primary-btn">Tra từ</button>
+      </div>
+
+      <!-- Quick Chips -->
+      <div class="chips-container">
+        <span class="chip-label">Thử nhanh:</span>
+        <button class="chip" data-word="hello">hello</button>
+        <button class="chip" data-word="look forward to">look forward to</button>
+        <button class="chip" data-word="break down">break down</button>
+        <button class="chip" data-word="run">run</button>
+        <button class="chip" data-word="under the weather">under the weather</button>
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="resultContainer" class="result-container">
+      <div id="loadingSpinner" class="spinner-box hidden">
+        <div class="spinner"></div>
+        <span>Đang tra cứu từ điển...</span>
+      </div>
+
+      <div id="resultContent" class="result-content hidden">
+        <div class="result-header">
+          <div class="word-title-group">
+            <h2 id="resultWord" class="result-word">hello</h2>
+            <span id="lemmaBadge" class="badge lemma-badge hidden">Lemma Fallback</span>
+            <button id="popupStarBtn" class="popup-star-btn" title="Lưu vào Flashcard">☆ Lưu từ</button>
+          </div>
+          <div id="pronunciationsList" class="pronunciations-list">
+            <!-- IPA pills inserted dynamically -->
+          </div>
+        </div>
+
+        <div id="definitionsList" class="definitions-list">
+          <!-- Definitions grouped by POS inserted dynamically -->
+        </div>
+      </div>
+
+      <div id="noResultContent" class="no-result hidden">
+        <p>Không tìm thấy từ này trong từ điển offline.</p>
+      </div>
+    </section>
+
+    <!-- Flashcards Navigation CTA -->
+    <section class="flashcards-section">
+      <button id="openFlashcardsBtn" class="btn flashcards-btn">
+        <span class="btn-icon">🗂️</span>
+        <span class="btn-text">Mở Flashcards Ôn Tập</span>
+        <span id="popupFlashcardCount" class="count-badge">0 từ</span>
+      </button>
+    </section>
+
+    <!-- Extension Options / Status -->
+    <section class="options-section">
+      <div class="option-row">
+        <span class="option-text">Tự động can thiệp phụ đề YouTube</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleSubtitle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="option-row">
+        <span class="option-text">Tạm dừng video khi rê chuột (hover)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleAutoPause" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="option-row">
+        <span class="option-text">Tra từ khi bôi đen trên mọi trang web</span>
+        <label class="switch">
+          <input type="checkbox" id="toggleSelectionLookup" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Kích cỡ chữ phụ đề YouTube -->
+      <div class="size-option-row">
+        <div class="size-label-group">
+          <span class="option-text">Kích cỡ chữ phụ đề YouTube:</span>
+          <span id="subtitleSizeVal" class="size-badge">100% (Mặc định)</span>
+        </div>
+        <input 
+          type="range" 
+          id="subtitleSizeSlider" 
+          min="80" 
+          max="160" 
+          value="100" 
+          step="5" 
+          class="size-slider"
+        >
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>100% Offline SQLite (sql.js WASM)</span>
+      <span class="version">v1.1.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
