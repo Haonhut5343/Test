@@ -142,6 +142,21 @@ class DictionaryEngine {
     }
 
     /**
+     * Validate that an IPA string is a clean phonetic representation without HTML or noise
+     * @param {string} ipa
+     * @returns {boolean}
+     */
+    static isValidIpa(ipa) {
+        if (!ipa || typeof ipa !== 'string') return false;
+        const trimmed = ipa.trim();
+        if (!trimmed.startsWith('/') || !trimmed.endsWith('/') || trimmed.length < 3 || trimmed.length > 40) return false;
+        if (/[<>&;=]/.test(trimmed)) return false;
+        if (/[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệđìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i.test(trimmed)) return false;
+        if ((trimmed.match(/\//g) || []).length !== 2) return false;
+        return true;
+    }
+
+    /**
      * Format raw database rows into clean structured output
      * @param {string} query
      * @param {string} matchedWord
@@ -162,7 +177,7 @@ class DictionaryEngine {
         // Deduplicate pronunciations
         const pronMap = new Map();
         for (const row of rows) {
-            if (row.ipa) {
+            if (row.ipa && DictionaryEngine.isValidIpa(row.ipa)) {
                 const key = `${row.ipa}_${row.region || ''}`;
                 if (!pronMap.has(key)) {
                     pronMap.set(key, {
@@ -176,7 +191,7 @@ class DictionaryEngine {
         // If this word has no IPA, inherit from rootRows if available
         if (pronMap.size === 0 && rootRows && rootRows.length > 0) {
             for (const row of rootRows) {
-                if (row.ipa) {
+                if (row.ipa && DictionaryEngine.isValidIpa(row.ipa)) {
                     const key = `${row.ipa}_${row.region || ''}`;
                     if (!pronMap.has(key)) {
                         pronMap.set(key, {
@@ -361,10 +376,24 @@ class DictionaryEngine {
         let rows = this.queryRows(cleaned);
         if (rows.length > 0) {
             // Check if definition is a referral to a root word (e.g. squared -> square)
-            const detectedRoot = this.extractReferralRootWord(cleaned, rows);
+            let detectedRoot = this.extractReferralRootWord(cleaned, rows);
             let rootRows = [];
             if (detectedRoot) {
                 rootRows = this.queryRows(detectedRoot);
+            }
+
+            // If this word has no valid pronunciations, inherit IPA from lemma candidate (e.g. scripts -> script)
+            const hasPron = rows.some(r => r.ipa && DictionaryEngine.isValidIpa(r.ipa));
+            if (!hasPron && !cleaned.includes(' ')) {
+                const candidates = this.getLemmaCandidates(cleaned);
+                for (const cand of candidates) {
+                    const candRows = this.queryRows(cand);
+                    if (candRows.some(r => r.ipa && DictionaryEngine.isValidIpa(r.ipa))) {
+                        rootRows = rootRows.concat(candRows);
+                        if (!detectedRoot) detectedRoot = cand;
+                        break;
+                    }
+                }
             }
 
             const result = this.formatResult(text, cleaned, rows, detectedRoot, rootRows);

@@ -4,16 +4,19 @@ const initSqlJs = require('sql.js');
 const csTerms = require('./cs_terms_data.js');
 
 function parseStarDictEntry(rawHtml, word) {
-  // 1. Extract IPAs
-  // Formats: <b style="font-size:80%">[UK]</b> /.../ <b style="font-size:80%">[US]</b> /.../ or /.../
+  // 1. Extract IPAs safely only from header section (before definition sections)
   const pronunciations = [];
-  const ipaRegex = /(?:<b[^>]*>\[([A-Z]{2})\]<\/b>\s*)?\/([^/]+)\//g;
+  const headerPart = rawHtml.split(/<div><b[^>]*>■/i)[0];
+  const ipaRegex = /(?:<b[^>]*>\[([A-Z]{2})\]<\/b>\s*)?\/([^/<>]+)\//g;
   let ipaMatch;
-  while ((ipaMatch = ipaRegex.exec(rawHtml)) !== null) {
+  while ((ipaMatch = ipaRegex.exec(headerPart)) !== null) {
     const region = ipaMatch[1] || null;
-    const ipa = '/' + ipaMatch[2].replace(/[\u200B-\u200D\uFEFF]/g, '').trim() + '/';
-    if (!pronunciations.some(p => p.ipa === ipa && p.region === region)) {
-      pronunciations.push({ ipa, region });
+    let ipaText = ipaMatch[2].replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+    if (ipaText && !/[<>&;=]/.test(ipaText) && !/[à-ỹ]/i.test(ipaText) && ipaText.length >= 2 && ipaText.length <= 35) {
+      const ipa = '/' + ipaText + '/';
+      if (!pronunciations.some(p => p.ipa === ipa && p.region === region)) {
+        pronunciations.push({ ipa, region });
+      }
     }
   }
 
