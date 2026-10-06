@@ -4,7 +4,8 @@
   "version": "1.2.0",
   "description": "Học tiếng Anh qua phụ đề YouTube, tra từ bôi đen trên web và ôn tập từ vựng Flashcard với từ điển Anh-Việt offline SQLite (sql.js WebAssembly)",
   "permissions": [
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"

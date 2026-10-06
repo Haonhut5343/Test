@@ -35,6 +35,44 @@
   let currentLookupResult = null;
   let isCurrentWordSaved = false;
 
+  // Ultra-Fast In-Memory Local Cache (0ms response)
+  const localLookupCache = new Map();
+  let savedFlashcardsSet = new Set();
+
+  // Load saved flashcards initially & keep in sync without message latency
+  try {
+    if (chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get(['flashcards'], (items) => {
+        const list = items.flashcards || [];
+        savedFlashcardsSet = new Set(list.map(it => (it.word || '').toLowerCase()));
+      });
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes.flashcards) {
+          const list = changes.flashcards.newValue || [];
+          savedFlashcardsSet = new Set(list.map(it => (it.word || '').toLowerCase()));
+          updateStarButtonState();
+        }
+      });
+    }
+  } catch (err) {}
+
+  // Keep-Alive connection to background Service Worker (prevents MV3 SW idle termination)
+  let keepAlivePort = null;
+  function connectKeepAlivePort() {
+    try {
+      if (chrome.runtime && chrome.runtime.connect) {
+        keepAlivePort = chrome.runtime.connect({ name: 'subdict_keepalive' });
+        keepAlivePort.onDisconnect.addListener(() => {
+          keepAlivePort = null;
+          setTimeout(connectKeepAlivePort, 1500);
+        });
+      }
+    } catch (err) {
+      setTimeout(connectKeepAlivePort, 3000);
+    }
+  }
+  connectKeepAlivePort();
+
   // -------------------------------------------------------------
   // Flashcard Helpers
   // -------------------------------------------------------------
@@ -53,13 +91,10 @@
     }, 2200);
   }
 
-  async function checkWordInFlashcards(word) {
+  function checkWordInFlashcards(word) {
     if (!word) return;
-    try {
-      const res = await chrome.runtime.sendMessage({ action: 'CHECK_FLASHCARD', word });
-      isCurrentWordSaved = Boolean(res?.isSaved);
-      updateStarButtonState();
-    } catch (err) {}
+    isCurrentWordSaved = savedFlashcardsSet.has(word.toLowerCase());
+    updateStarButtonState();
   }
 
   function updateStarButtonState() {
@@ -587,6 +622,18 @@
   async function showDirectSelectionPopup(text, rect) {
     createTooltip();
 
+    const normalized = text.trim().toLowerCase().replace(/^[^\w\s'-]+|[^\w\s'-]+$/g, '');
+
+    // 1. Fast Path: If cached locally, render INSTANTLY (0ms)
+    if (localLookupCache.has(normalized)) {
+      const cached = localLookupCache.get(normalized);
+      renderTooltipContent(cached);
+      positionTooltipForWebSelection(rect);
+      tooltip.classList.add('visible');
+      return;
+    }
+
+    // 2. Fetch from warm background service worker
     tooltip.innerHTML = `
       <div class="subdict-tt-header">
         <div class="subdict-tt-top-line">
@@ -608,6 +655,7 @@
       });
 
       if (response && response.success) {
+        localLookupCache.set(normalized, response.result);
         renderTooltipContent(response.result);
         positionTooltipForWebSelection(rect);
       }
@@ -630,9 +678,12 @@
       return;
     }
 
-    // Debounce to prevent accidental triggers when passing through words to popup
+    const normalized = text.trim().toLowerCase().replace(/^[^\w\s'-]+|[^\w\s'-]+$/g, '');
     const isAlreadyOpen = tooltip && tooltip.classList.contains('visible');
-    const delay = isAlreadyOpen ? 100 : 25;
+    const isCached = localLookupCache.has(normalized);
+
+    // Ultra-responsive debounce: 10ms if cached, 25ms if uncached
+    const delay = isCached ? 10 : (isAlreadyOpen ? 30 : 20);
 
     if (wordSwitchTimeout) clearTimeout(wordSwitchTimeout);
 
@@ -645,6 +696,14 @@
 
       // Position popup strictly above the subtitle box, aligned with this word
       positionTooltipOnYouTubeWord(elem);
+
+      // Fast Path: Cached word renders IMMEDIATELY with zero delay
+      if (isCached) {
+        renderTooltipContent(localLookupCache.get(normalized));
+        positionTooltipOnYouTubeWord(elem);
+        tooltip.classList.add('visible');
+        return;
+      }
 
       if (!isAlreadyOpen) {
         tooltip.innerHTML = `
@@ -667,6 +726,7 @@
         });
 
         if (hoveredWord === text && response && response.success) {
+          localLookupCache.set(normalized, response.result);
           renderTooltipContent(response.result);
           positionTooltipOnYouTubeWord(elem);
         }
@@ -726,6 +786,15 @@
       if (!response || !response.success || !response.segments) {
         segment.dataset.subdictProcessing = 'false';
         return;
+      }
+
+      // Ultra-Fast Pre-caching: store definitions for all words/phrases in this subtitle segment (0ms hover)
+      if (response.definitionsMap) {
+        for (const [key, defResult] of Object.entries(response.definitionsMap)) {
+          if (defResult) {
+            localLookupCache.set(key.toLowerCase(), defResult);
+          }
+        }
       }
 
       const frag = document.createDocumentFragment();

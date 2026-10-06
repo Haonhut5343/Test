@@ -74,11 +74,55 @@ async function getOrInitEngine() {
     return initPromise;
 }
 
-// Pre-warm engine on install or start
+// Pre-warm engine on install or startup
 chrome.runtime.onInstalled.addListener(() => {
     console.log('[Background] Extension installed, pre-warming dictionary database...');
     getOrInitEngine().catch(e => console.warn('[Background] Pre-warm failed:', e));
 });
+
+chrome.runtime.onStartup.addListener(() => {
+    console.log('[Background] Browser started, pre-warming dictionary database...');
+    getOrInitEngine().catch(e => console.warn('[Background] Pre-warm failed:', e));
+});
+
+// 1. Keep-Alive Port connection from content scripts (prevents SW idle termination)
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'subdict_keepalive') {
+        port.onMessage.addListener(() => {});
+        // Keep engine ready while any tab is connected
+        if (!engine || !engine.isReady) {
+            getOrInitEngine().catch(() => {});
+        }
+    }
+});
+
+// 2. Keep-Alive Alarm (fires every 20 seconds to prevent service worker unloading)
+try {
+    chrome.alarms.create('subdict_keepalive_alarm', { periodInMinutes: 0.35 });
+    chrome.alarms.onAlarm.addListener((alarm) => {
+        if (alarm.name === 'subdict_keepalive_alarm') {
+            getOrInitEngine().catch(() => {});
+        }
+    });
+} catch (e) {}
+
+// 3. Pre-warm whenever user interacts with tabs (switches tab, opens tab)
+if (chrome.tabs && chrome.tabs.onActivated) {
+    chrome.tabs.onActivated.addListener(() => {
+        if (!engine || !engine.isReady) {
+            getOrInitEngine().catch(() => {});
+        }
+    });
+}
+if (chrome.tabs && chrome.tabs.onUpdated) {
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+        if (changeInfo.status === 'loading') {
+            if (!engine || !engine.isReady) {
+                getOrInitEngine().catch(() => {});
+            }
+        }
+    });
+}
 
 // Handle incoming messages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -115,7 +159,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         getOrInitEngine()
             .then(eng => {
                 const segments = eng.matchPhrasesInTokens(message.tokens || [], message.maxPhraseLength || 5);
-                sendResponse({ success: true, segments });
+                const definitionsMap = {};
+                for (const seg of segments) {
+                    if (seg.lookupKey && !definitionsMap[seg.lookupKey]) {
+                        definitionsMap[seg.lookupKey] = eng.lookup(seg.lookupKey);
+                    }
+                }
+                sendResponse({ success: true, segments, definitionsMap });
             })
             .catch(err => sendResponse({ success: false, error: err.message }));
         return true;

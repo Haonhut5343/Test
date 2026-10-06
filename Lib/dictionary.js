@@ -361,8 +361,15 @@ class DictionaryEngine {
             return { found: false, query: text, word: text, pronunciations: [], definitions: [] };
         }
 
-        // Normalize text
-        const cleaned = text.trim().toLowerCase().replace(/^[^\w\s]+|[^\w\s]+$/g, '');
+        // Normalize text (handling typographic quotes, dashes, whitespace)
+        const normalized = text
+            .trim()
+            .replace(/[\u2018\u2019]/g, "'")
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/[\u2013\u2014]/g, '-')
+            .toLowerCase();
+
+        let cleaned = normalized.replace(/^[^\w\s'-]+|[^\w\s'-]+$/g, '');
         if (!cleaned) {
             return { found: false, query: text, word: text, pronunciations: [], definitions: [] };
         }
@@ -387,11 +394,13 @@ class DictionaryEngine {
             if (!hasPron && !cleaned.includes(' ')) {
                 const candidates = this.getLemmaCandidates(cleaned);
                 for (const cand of candidates) {
-                    const candRows = this.queryRows(cand);
-                    if (candRows.some(r => r.ipa && DictionaryEngine.isValidIpa(r.ipa))) {
-                        rootRows = rootRows.concat(candRows);
-                        if (!detectedRoot) detectedRoot = cand;
-                        break;
+                    if (this.hasWord(cand)) {
+                        const candRows = this.queryRows(cand);
+                        if (candRows.some(r => r.ipa && DictionaryEngine.isValidIpa(r.ipa))) {
+                            rootRows = rootRows.concat(candRows);
+                            if (!detectedRoot) detectedRoot = cand;
+                            break;
+                        }
                     }
                 }
             }
@@ -401,15 +410,30 @@ class DictionaryEngine {
             return result;
         }
 
-        // 2. Lemma fallback (only for single words or uninflected phrases)
+        // 2. Hyphen to space fallback (e.g. real-time -> real time, state-of-the-art -> state of the art)
+        if (cleaned.includes('-')) {
+            const spaceVariant = cleaned.replace(/-/g, ' ');
+            if (this.hasWord(spaceVariant)) {
+                rows = this.queryRows(spaceVariant);
+                if (rows.length > 0) {
+                    const result = this.formatResult(text, cleaned, rows, spaceVariant, []);
+                    this.cache.set(cleaned, result);
+                    return result;
+                }
+            }
+        }
+
+        // 3. Lemma fallback (only for single words or uninflected phrases)
         if (!cleaned.includes(' ')) {
             const candidates = this.getLemmaCandidates(cleaned);
             for (const lemma of candidates) {
-                rows = this.queryRows(lemma);
-                if (rows.length > 0) {
-                    const result = this.formatResult(text, cleaned, rows, lemma, []);
-                    this.cache.set(cleaned, result);
-                    return result;
+                if (this.hasWord(lemma)) {
+                    rows = this.queryRows(lemma);
+                    if (rows.length > 0) {
+                        const result = this.formatResult(text, cleaned, rows, lemma, []);
+                        this.cache.set(cleaned, result);
+                        return result;
+                    }
                 }
             }
         }
