@@ -922,9 +922,76 @@
     }, true);
   }
 
+  // -------------------------------------------------------------
+  // FEATURE: Context Menu Lookup Listener (From background script)
+  // -------------------------------------------------------------
+  let lastContextMenuPos = null;
+  window.addEventListener('contextmenu', (e) => {
+    lastContextMenuPos = { x: e.clientX, y: e.clientY };
+  }, true);
+
+  function setupContextLookupListener() {
+    if (!chrome.runtime || !chrome.runtime.onMessage) return;
+
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message?.action === 'SHOW_CONTEXT_LOOKUP') {
+        const result = message.result;
+        const text = message.text;
+        if (!result) {
+          sendResponse({ success: false });
+          return false;
+        }
+
+        createTooltip();
+        renderTooltipContent(result);
+
+        // Position tooltip
+        let positioned = false;
+        try {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const rect = sel.getRangeAt(0).getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              positionTooltipForWebSelection(rect);
+              positioned = true;
+            }
+          }
+        } catch (e) {}
+
+        if (!positioned && lastContextMenuPos) {
+          positionTooltipForWebSelection({
+            left: lastContextMenuPos.x,
+            right: lastContextMenuPos.x + 1,
+            top: lastContextMenuPos.y,
+            bottom: lastContextMenuPos.y + 1,
+            width: 1,
+            height: 1
+          });
+          positioned = true;
+        }
+
+        if (!positioned) {
+          const scrollX = window.scrollX || window.pageXOffset;
+          const scrollY = window.scrollY || window.pageYOffset;
+          tooltip.style.left = `${Math.max(12, scrollX + window.innerWidth - 480)}px`;
+          tooltip.style.top = `${scrollY + 80}px`;
+          tooltip.style.bottom = 'auto';
+          tooltip.style.transform = 'none';
+        }
+
+        tooltip.classList.add('visible');
+        isSelectionLookupActive = true;
+        sendResponse({ success: true });
+        return true;
+      }
+      return false;
+    });
+  }
+
   // Initialize features
   setupWheelForwarding();
   setupSelectionLookup();
+  setupContextLookupListener();
   setupFlashcardShortcuts();
 
   if (isYouTube) {

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubDict PDF Reader - Đọc PDF & Tra từ Bôi đen</title>
+  <link rel="stylesheet" href="pdf_viewer.min.css">
+  <link rel="stylesheet" href="../Content/content.css">
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body class="subdict-pdf-body">
+  <!-- Top Navigation & Control Toolbar -->
+  <header class="subdict-pdf-toolbar">
+    <div class="toolbar-left">
+      <div class="brand">
+        <span class="brand-icon">📖</span>
+        <span class="brand-title">SubDict PDF</span>
+      </div>
+      
+      <label for="pdfFileInput" class="btn toolbar-btn primary-btn" title="Mở file PDF từ máy tính">
+        📁 Chọn file PDF
+      </label>
+      <input type="file" id="pdfFileInput" accept="application/pdf" style="display:none;">
+
+      <button id="openUrlBtn" class="btn toolbar-btn" title="Mở PDF từ đường dẫn online">
+        🌐 Mở từ URL
+      </button>
+    </div>
+
+    <!-- Page navigation -->
+    <div class="toolbar-center">
+      <button id="prevPageBtn" class="nav-btn" title="Trang trước (Phím [ hoặc Mũi tên trái)">◀</button>
+      <div class="page-indicator">
+        <span>Trang</span>
+        <input type="number" id="pageNumberInput" value="1" min="1" max="1">
+        <span>/ <span id="totalPagesText">1</span></span>
+      </div>
+      <button id="nextPageBtn" class="nav-btn" title="Trang sau (Phím ] hoặc Mũi tên phải)">▶</button>
+    </div>
+
+    <!-- Zoom & Tools -->
+    <div class="toolbar-right">
+      <div class="zoom-controls">
+        <button id="zoomOutBtn" class="zoom-btn" title="Thu nhỏ (-)">−</button>
+        <select id="scaleSelect" class="scale-select" title="Tỷ lệ phóng to">
+          <option value="auto">Tự động vừa</option>
+          <option value="page-width" selected>Vừa chiều rộng</option>
+          <option value="1.0">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.5">150%</option>
+          <option value="2.0">200%</option>
+        </select>
+        <button id="zoomInBtn" class="zoom-btn" title="Phóng to (+)">+</button>
+      </div>
+
+      <button id="openFlashcardsBtn" class="btn toolbar-btn flashcards-btn" title="Mở Flashcards ôn tập">
+        🗂️ Flashcards
+      </button>
+    </div>
+  </header>
+
+  <!-- URL Prompt Bar (Toggled by "Mở từ URL") -->
+  <div id="urlInputBar" class="url-bar hidden">
+    <input type="url" id="pdfUrlInput" placeholder="Dán link file PDF online (vd: https://example.com/paper.pdf)...">
+    <button id="loadUrlBtn" class="btn primary-btn">Tải PDF</button>
+    <button id="cancelUrlBtn" class="btn">Hủy</button>
+  </div>
+
+  <!-- Main Viewer Container -->
+  <main id="viewerContainer" class="viewer-container">
+    <!-- Drag & Drop Overlay / Welcome Screen -->
+    <div id="dropZone" class="drop-zone">
+      <div class="drop-card">
+        <div class="drop-icon">📄</div>
+        <h2>Kéo thả file PDF vào đây</h2>
+        <p>Hoặc bấm nút <strong>"Chọn file PDF"</strong> ở góc trên bên trái để bắt đầu đọc tài liệu.</p>
+        <div class="feature-badges">
+          <span class="badge">✨ Bôi đen là hiện nghĩa ngay</span>
+          <span class="badge">⚡ 100% Offline SQLite</span>
+          <span class="badge">⭐ Lưu Flashcard (Alt + S)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Continuous Pages View -->
+    <div id="pdfViewer" class="pdfViewer"></div>
+  </main>
+
+  <!-- Loading Indicator -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <div id="loadingText" class="loading-text">Đang nạp tài liệu PDF...</div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="pdf.min.js"></script>
+  <script src="viewer.js"></script>
+</body>
+</html>

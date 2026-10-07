@@ -74,14 +74,45 @@ async function getOrInitEngine() {
     return initPromise;
 }
 
+// Setup Context Menu for PDF & Web selection lookup
+function setupContextMenu() {
+    if (!chrome.contextMenus) return;
+    try {
+        chrome.contextMenus.removeAll(() => {
+            // 1. Text Selection Lookup
+            chrome.contextMenus.create({
+                id: 'subdict_lookup_selection',
+                title: 'Tra từ điển SubDict: "%s"',
+                contexts: ['selection']
+            }, () => {
+                if (chrome.runtime.lastError) {}
+            });
+
+            // 2. Open PDF Links in SubDict PDF Reader
+            chrome.contextMenus.create({
+                id: 'subdict_open_pdf_link',
+                title: '📖 Mở bằng SubDict PDF Reader',
+                contexts: ['link'],
+                targetUrlPatterns: ['*://*/*.pdf*', '*://*/*pdf*']
+            }, () => {
+                if (chrome.runtime.lastError) {}
+            });
+        });
+    } catch (e) {
+        console.warn('[Background] Setup context menu error:', e);
+    }
+}
+
 // Pre-warm engine on install or startup
 chrome.runtime.onInstalled.addListener(() => {
     console.log('[Background] Extension installed, pre-warming dictionary database...');
+    setupContextMenu();
     getOrInitEngine().catch(e => console.warn('[Background] Pre-warm failed:', e));
 });
 
 chrome.runtime.onStartup.addListener(() => {
     console.log('[Background] Browser started, pre-warming dictionary database...');
+    setupContextMenu();
     getOrInitEngine().catch(e => console.warn('[Background] Pre-warm failed:', e));
 });
 
@@ -184,6 +215,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 
+    // --- PDF READER ACTIONS ---
+    if (action === 'OPEN_PDF_VIEWER') {
+        const fileUrl = message.fileUrl;
+        const url = fileUrl
+            ? chrome.runtime.getURL(`PdfViewer/viewer.html?file=${encodeURIComponent(fileUrl)}`)
+            : chrome.runtime.getURL('PdfViewer/viewer.html');
+        chrome.tabs.create({ url });
+        sendResponse({ success: true });
+        return false;
+    }
+
     // --- FLASHCARD ACTIONS ---
     if (action === 'OPEN_FLASHCARDS_PAGE') {
         const url = chrome.runtime.getURL('Flashcards/flashcards.html');
@@ -283,3 +325,71 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return false;
 });
+
+// Context Menu selection click handler (supports PDFs and web pages)
+if (chrome.contextMenus && chrome.contextMenus.onClicked) {
+    chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+        // Open PDF Link directly in SubDict PDF Reader
+        if (info.menuItemId === 'subdict_open_pdf_link') {
+            const fileUrl = info.linkUrl;
+            if (fileUrl) {
+                const viewerUrl = chrome.runtime.getURL(`PdfViewer/viewer.html?file=${encodeURIComponent(fileUrl)}`);
+                chrome.tabs.create({ url: viewerUrl });
+            }
+            return;
+        }
+
+        if (info.menuItemId === 'subdict_lookup_selection') {
+            const rawText = (info.selectionText || '').trim();
+            if (!rawText) return;
+
+            // Instant dictionary lookup
+            let result = null;
+            try {
+                const eng = await getOrInitEngine();
+                result = eng.lookup(rawText);
+            } catch (err) {
+                console.error('[Background] Context lookup error:', err);
+            }
+
+            // Attempt delivery to content script on active tab
+            let delivered = false;
+            if (tab && tab.id) {
+                try {
+                    const res = await chrome.tabs.sendMessage(tab.id, {
+                        action: 'SHOW_CONTEXT_LOOKUP',
+                        text: rawText,
+                        result: result
+                    });
+                    if (res && res.success) {
+                        delivered = true;
+                    }
+                } catch (e) {
+                    // Content script not present (e.g. PDF viewer, chrome internal pages)
+                    delivered = false;
+                }
+            }
+
+            // Fallback for PDF viewers, chrome:// pages, or restricted pages:
+            // Open lightweight mini popup window with the exact word lookup
+            if (!delivered) {
+                const popupUrl = chrome.runtime.getURL(`Popup/popup.html?word=${encodeURIComponent(rawText)}&mode=popup`);
+                const width = 450;
+                const height = 560;
+                const left = Math.max(80, (tab?.width ? tab.width - width - 60 : 300));
+                const top = 100;
+
+                chrome.windows.create({
+                    url: popupUrl,
+                    type: 'popup',
+                    width,
+                    height,
+                    left,
+                    top,
+                    focused: true
+                });
+            }
+        }
+    });
+}
+

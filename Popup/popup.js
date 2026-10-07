@@ -26,6 +26,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   const popupStarBtn = document.getElementById('popupStarBtn');
   let currentPopupResult = null;
 
+  // PDF Reader button click & active tab detection
+  const openPdfReaderBtn = document.getElementById('openPdfReaderBtn');
+  const pdfReaderBtnText = document.getElementById('pdfReaderBtnText');
+  let activeTabPdfUrl = null;
+
+  try {
+    if (chrome.tabs && chrome.tabs.query) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs && tabs[0];
+        if (activeTab && activeTab.url) {
+          const url = activeTab.url.toLowerCase();
+          if (url.endsWith('.pdf') || url.includes('.pdf?') || url.includes('.pdf#')) {
+            activeTabPdfUrl = activeTab.url;
+            if (pdfReaderBtnText) {
+              pdfReaderBtnText.textContent = '⚡ Đọc PDF Này';
+            }
+            if (openPdfReaderBtn) {
+              openPdfReaderBtn.title = 'Mở file PDF đang xem bằng SubDict Reader để bôi đen tra từ';
+            }
+          }
+        }
+      });
+    }
+  } catch (e) {}
+
+  openPdfReaderBtn?.addEventListener('click', () => {
+    if (activeTabPdfUrl) {
+      chrome.tabs.create({ url: chrome.runtime.getURL(`PdfViewer/viewer.html?file=${encodeURIComponent(activeTabPdfUrl)}`) });
+    } else {
+      chrome.tabs.create({ url: chrome.runtime.getURL('PdfViewer/viewer.html') });
+    }
+  });
+
   // Flashcards button click
   openFlashcardsBtn?.addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('Flashcards/flashcards.html') });
@@ -287,7 +320,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Initial check & auto-test query 'hello' (as required by Phase 3 Checkpoint)
+  // Initial check & lookup word from URL or default 'hello'
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramWord = urlParams.get('word');
+  const initialWord = (paramWord && paramWord.trim()) ? paramWord.trim() : 'hello';
+  wordInput.value = initialWord;
+
+  if (isWindowMode) {
+    document.body.classList.add('subdict-window-mode');
+    // Auto-close window when user clicks elsewhere / loses focus (quá trình lùi ra sau Edge)
+    window.addEventListener('blur', () => {
+      setTimeout(() => {
+        window.close();
+      }, 120);
+    });
+  }
+
   await checkDbStatus();
-  doLookup('hello');
+  doLookup(initialWord);
+  if (paramWord) {
+    wordInput.select();
+  }
 });

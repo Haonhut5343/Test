@@ -5,7 +5,8 @@
   "description": "Học tiếng Anh qua phụ đề YouTube, tra từ bôi đen trên web và ôn tập từ vựng Flashcard với từ điển Anh-Việt offline SQLite (sql.js WebAssembly)",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -38,7 +39,13 @@
         "Content/content.css",
         "Flashcards/flashcards.html",
         "Flashcards/flashcards.css",
-        "Flashcards/flashcards.js"
+        "Flashcards/flashcards.js",
+        "PdfViewer/viewer.html",
+        "PdfViewer/viewer.css",
+        "PdfViewer/viewer.js",
+        "PdfViewer/pdf.min.js",
+        "PdfViewer/pdf.worker.min.js",
+        "PdfViewer/pdf_viewer.min.css"
       ],
       "matches": ["<all_urls>"]
     }

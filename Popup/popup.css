@@ -12,6 +12,13 @@ body {
   font-size: 14px;
 }
 
+body.subdict-window-mode {
+  width: 100%;
+  min-width: 360px;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
 .container {
   padding: 16px;
   display: flex;
@@ -424,24 +431,50 @@ input:checked + .slider:before {
   padding-top: 8px;
 }
 
-/* Flashcards Section in Popup */
-.flashcards-section {
+/* Quick Actions Section in Popup (PDF Reader + Flashcards) */
+.nav-actions-section {
   display: flex;
+  gap: 8px;
+}
+
+.pdf-reader-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #0f766e, #0d9488);
+  color: #ffffff;
+  border: 1px solid #2dd4bf;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+}
+
+.pdf-reader-btn:hover {
+  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  box-shadow: 0 6px 16px rgba(45, 212, 191, 0.35);
+  transform: translateY(-1px);
 }
 
 .flashcards-btn {
-  width: 100%;
+  flex: 1;
   background: linear-gradient(135deg, #0369a1, #0284c7);
   color: #ffffff;
   border: 1px solid #38bdf8;
-  padding: 9px 14px;
+  padding: 9px 10px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
 }
